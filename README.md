@@ -58,3 +58,49 @@ MemoryOS 是一个带「持久记忆」能力的轻量级 AI 对话控制台。
 git clone https://github.com/your-name/memoryos.git
 cd memoryos
 
+###2. 启动后端
+> 需要 Python 3.10+，推荐 3.11。
+com
+cd backendpython -m venv .venvsource .venv/bin/activate  # Windows 使用 .venv\Scripts\activatepip install -r requirements.txt# 可根据需要在 backend/.env 覆盖配置# 例如：# DATABASE_URL=sqlite+pysqlite:///./memoryos.db# LLM_BASE_URL=https://api.deepseek.com# LLM_API_KEY=sk-xxxuvicorn app.main:app --reload --host 0.0.0.0 --port 1880
+后台接口地址默认是：http://localhost:1880/api/v1/...
+###3. 启动前端
+> 需要 Node.js 18+。
+cd memoryosnpm install# 配置前端环境变量（可选）# 在 memoryos/.env.local 中设置：# VITE_API_BASE_URL=http://localhost:1880npm run dev
+浏览器访问：http://localhost:5173（Vite 默认端口），即可看到控制台界面。
+🐳 Docker 部署（本机 & 服务器通用）
+> 本仓库提供了 Dockerfile.backend、Dockerfile.frontend 和 docker-compose.yml，一键启动前后端。
+在项目根目录执行：
+docker compose builddocker compose up -d
+默认映射端口：
+前端：http://localhost:3000
+后端：http://localhost:1880
+在服务器（如阿里云 ECS）部署时：
+把代码上传到服务器
+安装 Docker / Docker Compose
+执行同样的 docker compose build && docker compose up -d
+确保安全组放通 3000 端口（或将 docker-compose.yml 中前端端口改为 80:80）
+⚙️ 配置说明
+后端配置（backend/app/config.py）
+可通过环境变量或 .env 覆盖：
+DATABASE_URL
+默认：sqlite+pysqlite:///./memoryos.db
+如需 PostgreSQL：postgresql+psycopg://user:pass@host:5432/memoryos
+REDIS_URL（预留，将来可用于队列 / 缓存）
+LLM_BASE_URL
+默认：https://api.deepseek.com（可改为任意 OpenAI 兼容网关）
+LLM_API_KEY / LLM_MODEL
+后端用于执行记忆抽取的模型配置。
+前端配置（memoryos/.env.*）
+VITE_API_BASE_URL
+开发环境：http://localhost:1880
+Docker + Nginx 下：建议设为 /api，由 Nginx 反向代理转发到后端服务。
+🧠 记忆模型概览
+MemoryOS 的记忆分为两层：
+用户画像（Profile）
+workContext：工作背景、领域、公司 / 项目概况
+personalStyle：沟通偏好、语言风格
+currentFocus：最近一段时间的重点关注 / 项目
+原子事实（Facts）
+每条记录包含：content / category / confidence / createdAt / sourceSessionId
+用于存储更细粒度的习惯、偏好、历史事件等
+在对话结束后，后端会调用 LLM 对本轮对话做总结与抽取，更新上述结构；在新对话开始前，系统会将这些信息格式化后注入到 System Prompt 中，让模型对用户有「持续的记忆」。
